@@ -1,0 +1,18 @@
+{
+  "name": "geojson",
+  "version": "1.0.0",
+  "description": "Servidor Express para Render con PostgreSQL y CORS",
+  "main": "scripts.js",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

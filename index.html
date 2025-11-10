@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDESUR - Visualizador de GeoJSON</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0072CE;
+            --secondary: #00AEEF;
+            --accent: #ffc107;
+            --danger: #e63946;
+            --success: #2a9d8f;
+            --bg-light: #f8f9fa;
+            --text-dark: #343a40;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #e9f3ff 0%, #f9fcff 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 400px;
+            background: #ffffff;
+            padding: 1.5rem;
+            overflow-y: auto;
+            border-right: 1px solid #e5e5e5;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-light);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            margin-bottom: 0.8rem;
+            font-size: 1.1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #444;
+            font-weight: 600;
+            display: block;
+            margin-top: 0.8rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .btn {
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-outline {
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-top: 0.6rem;
+            padding: 0.7rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .warning-message {
+            color: #f57c00;
+            background: rgba(255, 204, 128, 0.2);
+        }
+
+        .success-message {
+            color: var(--success);
+            background: rgba(42, 157, 143, 0.1);
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            padding: 0.5rem;
+            background: #f1f1f1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-bolt"></i> Mapa EDESUR</h1>
+            <div><strong id="total-files">0</strong> registros cargados</div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+
+                <div class="card">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+
+                    <label for="sucursal-filter">Sucursal</label>
+                    <select id="sucursal-filter">
+                        <option value="all">Todas</option>
+                    </select>
+
+                    <label for="plan-filter">Plan</label>
+                    <select id="plan-filter">
+                        <option value="all">Todos</option>
+                    </select>
+
+                    <div class="filter-actions">
+                        <button id="show-on-map" class="btn btn-success"><i class="fas fa-map"></i> Mostrar</button>
+                        <button id="reset-filters" class="btn btn-outline"><i class="fas fa-redo"></i> Resetear</button>
+                    </div>
+
+                    <div id="file-message"></div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-info-circle"></i> Información General</h3>
+                    <div id="general-info">
+                        <div class="message warning-message">No hay datos cargados</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-palette"></i> Leyenda</h3>
+                    <div id="legend-content">
+                        <div class="message warning-message"><i class="fas fa-info-circle"></i> Filtra datos para ver la leyenda</div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button id="export-csv-btn" class="btn btn-outline" disabled>
+                            <i class="fas fa-file-export"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <footer>© 2025 EDESUR - Visualizador GeoJSON</footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const map = L.map('map').setView([-34.6, -58.4], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let preloadedData = [];
+        let loadedLayers = [];
+
+        const sucursalFilter = document.getElementById('sucursal-filter');
+        const planFilter = document.getElementById('plan-filter');
+        const showOnMapBtn = document.getElementById('show-on-map');
+        const resetFiltersBtn = document.getElementById('reset-filters');
+        const legendContent = document.getElementById('legend-content');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const fileMessage = document.getElementById('file-message');
+        const generalInfo = document.getElementById('general-info');
+        const totalFiles = document.getElementById('total-files');
+
+        const colorPalette = [
+            '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
+            '#9b59b6', '#1abc9c', '#d35400', '#c0392b'
+        ];
+
+        async function loadFromDatabase() {
+            fileMessage.innerHTML = '<div class="message warning-message"><i class="fas fa-sync fa-spin"></i> Cargando datos desde la base de datos...</div>';
+            try {
+                const response = await fetch('http://localhost:3000/geojsons');
+                const data = await response.json();
+                if (!Array.isArray(data)) throw new Error('Respuesta inesperada del servidor');
+
+                preloadedData = data.map((item, index) => {
+                    const nombre = item.nombre || '';
+                    const sucursal = nombre.substring(0, 2) || 'N/A';
+                    const plan = nombre.substring(3, 5) || 'N/A';
+                    return {
+                        id: item.id,
+                        name: nombre,
+                        data: item.data,
+                        sucursal,
+                        plan,
+                        color: colorPalette[index % colorPalette.length]
+                    };
+                });
+
+                console.log("✅ Datos recibidos del backend:", preloadedData);
+
+                fileMessage.innerHTML = `<div class="message success-message"><i class="fas fa-check-circle"></i> ${preloadedData.length} registros cargados. Seleccioná filtros para visualizarlos.</div>`;
+                totalFiles.textContent = preloadedData.length;
+
+                updateFilterOptions();
+                updateGeneralInfo();
+                updateLegend();
+            } catch (error) {
+                console.error(error);
+                fileMessage.innerHTML = `<div class="message warning-message"><i class="fas fa-exclamation-triangle"></i> ${error.message}</div>`;
+            }
+        }
+
+        function updateFilterOptions() {
+            const sucursales = [...new Set(preloadedData.map(i => i.sucursal))].sort();
+            const planes = [...new Set(preloadedData.map(i => i.plan))].sort();
+
+            sucursalFilter.innerHTML = '<option value="all">Todas</option>';
+            sucursales.forEach(s => {
+                if (s !== 'N/A') {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = `Sucursal ${s}`;
+                    sucursalFilter.appendChild(opt);
+                }
+            });
+
+            planFilter.innerHTML = '<option value="all">Todos</option>';
+            planes.forEach(p => {
+                if (p !== 'N/A') {
+                    const opt = document.createElement('option');
+                    opt.value = p;
+                    opt.textContent = `Plan ${p}`;
+                    planFilter.appendChild(opt);
+                }
+            });
+        }
+
+        function createLayerFromData(item) {
+            return L.geoJSON(item.data, {
+                style: { color: item.color, weight: 2, opacity: 0.8, fillOpacity: 0.3 },
+                onEachFeature: (feature, layer) => {
+                    layer.bindPopup(`
+                        <strong>${item.name}</strong><br>
+                        <b>Sucursal:</b> ${item.sucursal}<br>
+                        <b>Plan:</b> ${item.plan}
+                    `);
+                }
+            });
+        }
+
+        function showFilteredDataOnMap() {
+            clearMapLayers();
+
+            const sucursalSel = sucursalFilter.value;
+            const planSel = planFilter.value;
+
+            const filtered = preloadedData.filter(item =>
+                (sucursalSel === 'all' || item.sucursal === sucursalSel) &&
+                (planSel === 'all' || item.plan === planSel)
+            );
+
+            if (filtered.length === 0) {
+                fileMessage.innerHTML = `<div class="message warning-message"><i class="fas fa-exclamation-triangle"></i> No hay datos que coincidan con los filtros.</div>`;
+                updateLegend();
+                return;
+            }
+
+            filtered.forEach(item => {
+                const layer = createLayerFromData(item);
+                layer.addTo(map);
+                loadedLayers.push({ ...item, layer });
+            });
+
+            const group = new L.featureGroup(loadedLayers.map(l => l.layer));
+            map.fitBounds(group.getBounds());
+            updateLegend();
+
+            fileMessage.innerHTML = `<div class="message success-message"><i class="fas fa-check-circle"></i> ${filtered.length} capas mostradas en el mapa.</div>`;
+        }
+
+        function clearMapLayers() {
+            loadedLayers.forEach(l => map.removeLayer(l.layer));
+            loadedLayers = [];
+            updateLegend();
+        }
+
+        function updateLegend() {
+            if (loadedLayers.length === 0) {
+                legendContent.innerHTML = '<div class="message warning-message"><i class="fas fa-info-circle"></i> No hay capas visibles</div>';
+                exportCsvBtn.disabled = true;
+                return;
+            }
+
+            legendContent.innerHTML = loadedLayers.map(l => `
+                <div class="legend-item">
+                    <div class="legend-color" style="background:${l.color}"></div>
+                    <div>${l.name}</div>
+                </div>
+            `).join('');
+
+            exportCsvBtn.disabled = false;
+        }
+
+        function updateGeneralInfo() {
+            generalInfo.innerHTML = `
+                <div class="message success-message"><i class="fas fa-database"></i> Registros cargados: ${preloadedData.length}</div>
+            `;
+        }
+
+        function exportVisibleDataToCSV() {
+            if (loadedLayers.length === 0) {
+                alert("No hay datos visibles para exportar.");
+                return;
+            }
+
+            const headers = ["Nombre", "Sucursal", "Plan"];
+            const rows = [headers];
+            loadedLayers.forEach(item => {
+                rows.push([item.name, item.sucursal, item.plan]);
+            });
+
+            const csvContent = rows.map(r => r.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `datos_mostrados_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        showOnMapBtn.addEventListener('click', showFilteredDataOnMap);
+        resetFiltersBtn.addEventListener('click', () => {
+            sucursalFilter.value = 'all';
+            planFilter.value = 'all';
+            clearMapLayers();
+        });
+        exportCsvBtn.addEventListener('click', exportVisibleDataToCSV);
+
+        document.addEventListener('DOMContentLoaded', loadFromDatabase);
+    </script>
+</body>
+
+</html>
